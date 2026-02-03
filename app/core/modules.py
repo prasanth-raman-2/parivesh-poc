@@ -12,11 +12,13 @@ from app.core.database import engine
 from app.models.admin import UserAdmin
 from app.api.routers.main_router import router
 from app.router.chat_route import router as chat_router
+from app.api.endpoints.deficiency import router as deficiency_router
 # from app.core.settings import config
 
 def init_routers(app_: FastAPI) -> None:
     app_.include_router(router)
     app_.include_router(chat_router)
+    app_.include_router(deficiency_router)
     # admin dashboard 
     admin = Admin(app_, engine)
     admin.add_view(UserAdmin)
