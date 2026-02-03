@@ -13,7 +13,7 @@ import sys
 class RAGChatAgent:
     def __init__(
         self,
-        model: str = "gpt-4o-mini",
+        model: str = "gpt-5.2",
         top_k: int = 3,
         temperature: float = 0.7
     ):
@@ -275,7 +275,7 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-4o-mini",
+        default="gpt-5.2",
         help="LLM model to use (default: gpt-4o-mini)"
     )
     parser.add_argument(

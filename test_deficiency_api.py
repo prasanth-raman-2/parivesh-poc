@@ -11,7 +11,7 @@ def test_deficiency_detection_from_file():
     """Test deficiency detection by uploading project_proposal.json file."""
     
     # API endpoint
-    url = "http://localhost:8000/deficiency/detect-from-file"
+    url = "http://localhost:8001/deficiency/detect-from-file"
     
     # Path to project proposal file
     file_path = Path("/home/prasa/projects/negd/parivesh-poc/app/data/project_proposal.json")
@@ -19,7 +19,7 @@ def test_deficiency_detection_from_file():
     # Parameters
     params = {
         "include_low_severity": True,
-        "top_k_rag_results": 5
+        "top_k_rag_results": 3
     }
     
     # Upload file
@@ -41,55 +41,56 @@ def test_deficiency_detection_from_file():
         
         # Print summary
         print("\n" + "="*80)
-        print("DEFICIENCY DETECTION REPORT")
+        print("DEFICIENCY DETECTION REPORT - ALL FIELDS VALIDATED")
         print("="*80)
         print(f"\nProject ID: {result['project_id']}")
         print(f"Project Name: {result['project_name']}")
         print(f"Timestamp: {result['timestamp']}")
-        print(f"\nTotal Fields Checked: {result['total_fields_checked']}")
-        print(f"Total Deficiencies: {result['total_deficiencies']}")
-        print(f"\nSeverity Breakdown:")
-        print(f"  Critical: {result['critical_count']}")
-        print(f"  High: {result['high_count']}")
-        print(f"  Medium: {result['medium_count']}")
-        print(f"  Low: {result['low_count']}")
-        print(f"  Verified: {result['verified_count']}")
-        print(f"\nOverall Compliance Score: {result['overall_compliance_score']:.1f}%")
-        print(f"\nSummary: {result['summary']}")
         
-        # Print deficiencies by category
-        print("\n" + "="*80)
-        print("DEFICIENCIES BY CATEGORY")
-        print("="*80)
+        validation_summary = result['validation_summary']
+        print(f"\n{'='*80}")
+        print("VALIDATION SUMMARY")
+        print(f"{'='*80}")
+        print(f"Total Fields Checked: {validation_summary['total_fields_checked']}")
+        print(f"Verified Fields: {validation_summary['verified_count']} ✓")
+        print(f"Not Verified Fields: {validation_summary['not_verified_count']} ✗")
+        print(f"Verification Rate: {validation_summary['verification_rate_percent']}%")
         
-        for category in result['categories']:
-            print(f"\n{category['category_name']}")
-            print(f"  Checks: {category['total_checks']} | Deficiencies: {category['deficiencies_found']}")
-            print("-" * 80)
-            
-            for item in category['items']:
-                severity_icon = {
-                    'critical': '🔴',
-                    'high': '🟠',
-                    'medium': '🟡',
-                    'low': '🟢',
-                    'info': '✓'
-                }.get(item['severity'], '•')
-                
-                print(f"\n  {severity_icon} [{item['severity'].upper()}] {item['field_name']}")
-                print(f"     Type: {item['deficiency_type']}")
-                print(f"     Proposal: {item['proposal_value']}")
-                print(f"     EIA: {item['eia_value']}")
-                print(f"     Description: {item['description']}")
-                if item.get('confidence_score'):
-                    print(f"     Confidence: {item['confidence_score']:.2f}")
-                if item.get('recommendation'):
-                    print(f"     Recommendation: {item['recommendation']}")
-                if item.get('eia_reference'):
-                    print(f"     EIA Reference: {item['eia_reference'][:150]}...")
+        print(f"\n{result['summary']}")
+        
+        # Print verified fields
+        print(f"\n{'='*80}")
+        print(f"VERIFIED FIELDS ({len(result['verified_fields'])})")
+        print(f"{'='*80}")
+        
+        for field in result['verified_fields'][:10]:  # Show first 10
+            print(f"\n✓ {field['field_name']}")
+            print(f"   Path: {field['field_path']}")
+            print(f"   Proposal Value: {field['proposal_value']}")
+            print(f"   EIA Value: {field['eia_value']}")
+            print(f"   Confidence: {field['confidence']:.2f}")
+            if field.get('rag_reference'):
+                print(f"   RAG Reference: {field['rag_reference'][:150]}...")
+        
+        if len(result['verified_fields']) > 10:
+            print(f"\n... and {len(result['verified_fields']) - 10} more verified fields")
+        
+        # Print not verified fields
+        print(f"\n{'='*80}")
+        print(f"NOT VERIFIED FIELDS ({len(result['not_verified_fields'])})")
+        print(f"{'='*80}")
+        
+        for field in result['not_verified_fields']:
+            print(f"\n✗ {field['field_name']}")
+            print(f"   Path: {field['field_path']}")
+            print(f"   Proposal Value: {field['proposal_value']}")
+            print(f"   EIA Value: {field['eia_value']}")
+            print(f"   Confidence: {field['confidence']:.2f}")
+            if field.get('rag_reference'):
+                print(f"   RAG Reference: {field['rag_reference'][:150]}...")
         
         # Save full report
-        output_file = "deficiency_report.json"
+        output_file = "deficiency_report_full.json"
         with open(output_file, 'w') as f:
             json.dump(result, f, indent=2)
         
@@ -102,7 +103,7 @@ def test_deficiency_detection_from_file():
 
 def test_health_check():
     """Test health check endpoint."""
-    url = "http://localhost:8000/deficiency/health"
+    url = "http://localhost:8001/deficiency/health"
     
     print("\nChecking deficiency detection service health...")
     response = requests.get(url)

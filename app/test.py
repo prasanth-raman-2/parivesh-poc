@@ -38,6 +38,8 @@ for i, result in enumerate(results, 1):
     print(f"  Text: {result['text']}")
     print(f"  Metadata: {result['metadata']}")
 
+
+
 # Disconnect from Milvus
 doc_ingest.disconnect_milvus()
 

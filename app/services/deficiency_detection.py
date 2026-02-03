@@ -4,6 +4,7 @@ Deficiency Detection Service - Compares Project Proposal against EIA Report usin
 
 from typing import List, Dict, Any, Tuple
 from datetime import datetime
+import json
 
 from litellm import completion, embedding
 from app.milvus import MilvusClient
@@ -19,7 +20,7 @@ class DeficiencyDetectionService:
             dim=settings.EMBEDDING_DIMENSION
         )
         self.embedding_model = "text-embedding-3-large"
-        self.llm_model = "gpt-4o-mini"
+        self.llm_model = "gpt-5.2"
         
     def connect(self):
         """Connect to Milvus and load collection."""
@@ -50,15 +51,15 @@ class DeficiencyDetectionService:
         field_name: str,
         expected_value: Any,
         context_chunks: List[Dict[str, Any]]
-    ) -> Tuple[Any, str, float]:
+    ) -> Tuple[Any, str, float, bool]:
         """
         Use LLM to extract and verify value from RAG context.
         
         Returns:
-            Tuple of (extracted_value, reference_text, confidence_score)
+            Tuple of (extracted_value, reference_text, confidence_score, matches)
         """
         if not context_chunks:
-            return None, "No relevant information found in EIA report", 0.0
+            return None, "No relevant information found in EIA report", 0.0, False
         
         # Build context from chunks
         context_parts = []
@@ -96,26 +97,39 @@ Respond in JSON format:
                 temperature=0.1
             )
             
-            import json
             result = json.loads(response.choices[0].message.content)
             
             extracted_value = result.get("extracted_value")
             confidence = result.get("confidence", 0.5)
             reference = result.get("reference", "")
+            matches = result.get("matches_expected", False)
             
-            return extracted_value, reference, confidence
+            return extracted_value, reference, confidence, matches
         
         except Exception as e:
-            return None, f"Error extracting value: {str(e)}", 0.0
+            return None, f"Error extracting value: {str(e)}", 0.0, False
     
-    def safe_get(self, data: Dict, *keys, default=None):
-        """Safely get nested dictionary value."""
-        for key in keys:
-            if isinstance(data, dict):
-                data = data.get(key, {})
+    def flatten_json(self, data: Dict[str, Any], parent_key: str = '', sep: str = '.') -> Dict[str, Any]:
+        """
+        Flatten nested JSON structure.
+        
+        Returns:
+            Dictionary with flattened keys and values
+        """
+        items = []
+        
+        for key, value in data.items():
+            new_key = f"{parent_key}{sep}{key}" if parent_key else key
+            
+            if isinstance(value, dict):
+                items.extend(self.flatten_json(value, new_key, sep=sep).items())
+            elif isinstance(value, list):
+                # For lists, convert to string representation
+                items.append((new_key, str(value)))
             else:
-                return default
-        return data if data != {} else default
+                items.append((new_key, value))
+        
+        return dict(items)
     
     def detect_deficiencies(
         self,
@@ -124,189 +138,106 @@ Respond in JSON format:
         include_low: bool = False
     ) -> Dict[str, Any]:
         """
-        Main method to detect deficiencies by comparing proposal with EIA report.
+        Main method to detect deficiencies by validating ALL fields in proposal against EIA report.
+        
+        Returns comprehensive report with verification status for each field.
         """
-        deficiencies = []
+        print(f"\n{'='*80}")
+        print("Starting deficiency detection for all fields...")
+        print(f"{'='*80}\n")
         
-        # Extract values safely from proposal
-        project_name = self.safe_get(proposal, 'project_details', 'project_name')
-        project_id = self.safe_get(proposal, 'project_details', 'project_id')
-        village = self.safe_get(proposal, 'project_location', 'location_details', 'village')
-        district = self.safe_get(proposal, 'project_location', 'location_details', 'district')
-        state = self.safe_get(proposal, 'project_location', 'location_details', 'state')
-        org_name = self.safe_get(proposal, 'organization_details', 'organization_name')
-        total_land = self.safe_get(proposal, 'land_requirement', 'total_land_ha')
+        # Flatten the proposal to get all fields
+        flattened = self.flatten_json(proposal)
         
-        # Check 1: Project Name
-        if project_name:
-            query = f"project name expansion PCBL carbon black {project_name}"
+        total_fields = len(flattened)
+        verified_fields = []
+        not_verified_fields = []
+        field_results = []
+        
+        # Process each field
+        for idx, (field_path, field_value) in enumerate(flattened.items(), 1):
+            # Skip empty or None values
+            if field_value is None or field_value == "" or field_value == "N/A":
+                continue
+            
+            print(f"[{idx}/{total_fields}] Checking: {field_path} = {field_value}")
+            
+            # Create search query
+            field_name = field_path.split('.')[-1].replace('_', ' ').title()
+            query = f"{field_name} {field_value}"
+            
+            # Query RAG
             chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "Project Name", project_name, chunks
+            
+            # Extract and verify
+            eia_value, reference, confidence, matches = self.extract_value_from_rag(
+                field_name, field_value, chunks
             )
             
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "high"
+            # Determine verification status
+            is_verified = (eia_value is not None and confidence > 0.5) or matches
             
-            deficiencies.append({
-                "field": "Project Name",
-                "status": status,
-                "severity": severity,
-                "proposal_value": project_name,
+            field_result = {
+                "field_path": field_path,
+                "field_name": field_name,
+                "proposal_value": field_value,
                 "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 2: Production Capacity
-        if project_name and ("550" in str(project_name) or "675" in str(project_name)):
-            query = "production capacity TPD carbon black expansion 550 675"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "Production Capacity", "550 to 675 TPD", chunks
-            )
+                "verified": is_verified,
+                "confidence": confidence,
+                "rag_reference": reference[:200] if reference else None,
+                "matches": matches
+            }
             
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "critical"
+            field_results.append(field_result)
             
-            deficiencies.append({
-                "field": "Production Capacity",
-                "status": status,
-                "severity": severity,
-                "proposal_value": "550 to 675 TPD",
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 3: Village
-        if village:
-            query = f"village location {village}"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "Village", village, chunks
-            )
-            
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "high"
-            
-            deficiencies.append({
-                "field": "Village",
-                "status": status,
-                "severity": severity,
-                "proposal_value": village,
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 4: District
-        if district:
-            query = f"district location {district}"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "District", district, chunks
-            )
-            
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "critical"
-            
-            deficiencies.append({
-                "field": "District",
-                "status": status,
-                "severity": severity,
-                "proposal_value": district,
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 5: State
-        if state:
-            query = f"state location {state}"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "State", state, chunks
-            )
-            
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "high"
-            
-            deficiencies.append({
-                "field": "State",
-                "status": status,
-                "severity": severity,
-                "proposal_value": state,
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 6: Organization Name
-        if org_name:
-            query = f"organization company name {org_name} PCBL"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "Organization Name", org_name, chunks
-            )
-            
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "high"
-            
-            deficiencies.append({
-                "field": "Organization Name",
-                "status": status,
-                "severity": severity,
-                "proposal_value": org_name,
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
-        
-        # Check 7: Total Land Area
-        if total_land:
-            query = f"land area hectare ha {total_land}"
-            chunks = self.query_rag(query, top_k)
-            eia_value, reference, confidence = self.extract_value_from_rag(
-                "Total Land Area", f"{total_land} Ha", chunks
-            )
-            
-            status = "verified" if (eia_value and confidence > 0.6) else "not_found"
-            severity = "info" if status == "verified" else "medium"
-            
-            deficiencies.append({
-                "field": "Total Land Area",
-                "status": status,
-                "severity": severity,
-                "proposal_value": f"{total_land} Ha",
-                "eia_value": eia_value,
-                "confidence": round(confidence, 2) if confidence else 0,
-                "reference": reference[:200] if reference else ""
-            })
+            if is_verified:
+                verified_fields.append(field_result)
+                print(f"  ✓ VERIFIED (confidence: {confidence:.2f})")
+            else:
+                not_verified_fields.append(field_result)
+                print(f"  ✗ NOT VERIFIED (confidence: {confidence:.2f})")
         
         # Calculate statistics
-        verified_count = sum(1 for d in deficiencies if d['status'] == 'verified')
-        not_found_count = sum(1 for d in deficiencies if d['status'] == 'not_found')
-        critical_count = sum(1 for d in deficiencies if d['severity'] == 'critical')
-        high_count = sum(1 for d in deficiencies if d['severity'] == 'high')
-        medium_count = sum(1 for d in deficiencies if d['severity'] == 'medium')
+        verified_count = len(verified_fields)
+        not_verified_count = len(not_verified_fields)
+        verification_rate = (verified_count / total_fields * 100) if total_fields > 0 else 0
         
-        total_checked = len(deficiencies)
-        compliance_score = (verified_count / total_checked * 100) if total_checked > 0 else 0
+        # Extract project info for report header
+        project_id = proposal.get('project_details', {}).get('project_id', 'N/A')
+        project_name = proposal.get('project_details', {}).get('project_name', 'N/A')
         
-        return {
-            "project_id": project_id or "N/A",
-            "project_name": project_name or "N/A",
+        # Generate summary
+        summary = (
+            f"Validated {total_fields} fields from project proposal against EIA report. "
+            f"{verified_count} fields verified ({verification_rate:.1f}%), "
+            f"{not_verified_count} fields could not be verified ({100-verification_rate:.1f}%). "
+        )
+        
+        # Create comprehensive report
+        report = {
+            "project_id": project_id,
+            "project_name": project_name,
             "timestamp": datetime.utcnow().isoformat(),
-            "summary": {
-                "total_fields_checked": total_checked,
+            "validation_summary": {
+                "total_fields_checked": total_fields,
                 "verified_count": verified_count,
-                "deficiencies_found": not_found_count,
-                "critical_count": critical_count,
-                "high_count": high_count,
-                "medium_count": medium_count,
-                "compliance_score": round(compliance_score, 2)
+                "not_verified_count": not_verified_count,
+                "verification_rate_percent": round(verification_rate, 2)
             },
-            "deficiencies": deficiencies
+            "summary": summary,
+            "verified_fields": verified_fields,
+            "not_verified_fields": not_verified_fields,
+            "all_field_results": field_results
         }
+        
+        print(f"\n{'='*80}")
+        print("Deficiency Detection Complete!")
+        print(f"{'='*80}")
+        print(f"Total Fields: {total_fields}")
+        print(f"Verified: {verified_count} ({verification_rate:.1f}%)")
+        print(f"Not Verified: {not_verified_count} ({100-verification_rate:.1f}%)")
+        print(f"{'='*80}\n")
+        
+        return report
+
 
