@@ -1,0 +1,114 @@
+{
+  "project_details": {
+    "project_name": "Proposed Expansion of PCBL (TN) Limited from 550 TPD to 675 TPD of Different Grades of Carbon Black",
+    "project_proposal_for": "Expansion",
+    "expansion_under_7ii_a": "NO",
+    "project_id": "SW/74227/2024",
+    "project_description": "PCBL (TN) Limited is operating at SIPCOT Industrial Park, Thervoy Kandigai Village, Gummidipoondi Taluk, Thiruvallur District, Tamil Nadu – 601202. The unit has valid Environmental Clearance till 31.03.2028 for production capacity of 147000 MTPA. The company proposes to expand production from 550 MTPD to 675 MTPD. The expanded production will meet domestic market demand."
+  },
+  "organization_details": {
+    "legal_status": "Company",
+    "organization_name": "PCBL (TN) LIMITED",
+    "registered_address": {
+      "address": "Plot No A7, SIPCOT Industrial Complex, Thervoykandigai Village, Gummidipoondi Taluk, Thiruvallur District",
+      "village_city": "Thervoykandigai Village",
+      "state": "Tamil Nadu",
+      "district": "Thiruvallur",
+      "pin_code": "601202",
+      "landmark": "SIPCOT Industrial Park"
+    },
+    "contact_details": {
+      "email": "pcbltn@rpsg.in",
+      "mobile": "xxxxxx2341"
+    }
+  },
+  "applicant_details": {
+    "name": "Rakesh Kumar Nayak",
+    "designation": "Whole Time Director",
+    "correspondence_address": {
+      "address": "Plot No A7, SIPCOT Industrial Complex, Thervoykandigai Village, Gummidipoondi Taluk, Thiruvallur District",
+      "village_city": "Thervoykandigai Village",
+      "state": "Tamil Nadu",
+      "district": "Thiruvallur",
+      "pin_code": "601202"
+    },
+    "contact_details": {
+      "email": "pcbltn@rpsg.in",
+      "mobile": "xxxxxx2341"
+    }
+  },
+  "project_location": {
+    "kml_uploaded": "Project Site.kml",
+    "international_border_state": "YES",
+    "aerial_distance_from_border_km": 2.67,
+    "project_shape": "Non-Linear",
+    "location_details": {
+      "topsheet_no": "D44N15",
+      "state": "Tamil Nadu",
+      "district": "Thiruvallur",
+      "sub_district": "Gummidipoondi",
+      "village": "Teruvai"
+    },
+    "remarks": "N/A"
+  },
+  "land_requirement": {
+    "non_forest_land_ha": {
+      "existing": 24.2892,
+      "additional": 0.9875,
+      "total_after_expansion": 25.2767
+    },
+    "forest_land_ha": {
+      "existing": 0,
+      "additional": 0,
+      "total_after_expansion": 0
+    },
+    "total_land_ha": 25.2767
+  },
+  "project_cost_lakhs": {
+    "existing_project_cost": 81600,
+    "proposed_expansion_cost": 36000,
+    "total_project_cost": 117600
+  },
+  "employment_generation": {
+    "construction_phase": {
+      "permanent_employment": {
+        "number": 10,
+        "period_days": 540,
+        "man_days": 5400
+      },
+      "temporary_employment_man_days": 270000,
+      "total_man_days": 275400
+    },
+    "operational_phase": {
+      "permanent_employment": {
+        "existing": 210,
+        "proposed": 20,
+        "total": 230
+      },
+      "period_days": {
+        "existing": 350,
+        "proposed": 0,
+        "total": 350
+      },
+      "man_days": {
+        "existing": 73500,
+        "proposed": 0,
+        "total": 80500
+      },
+      "temporary_employment_man_days": {
+        "existing": 31500,
+        "proposed": 14000,
+        "total": 45500
+      },
+      "total_man_days": 126000
+    }
+  },
+  "other_information": {
+    "rehabilitation_and_resettlement": "NO",
+    "shifting_of_utilities_required": "NO",
+    "alternative_site_examined": "Not applicable as the project/activity is site specific",
+    "government_order_or_policy_applicable": "NO",
+    "litigation_pending": "NO",
+    "violation_of_laws_or_rules": "NO"
+  }
+}

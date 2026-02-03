@@ -1,0 +1,82 @@
+{
+  "total_chunks": 199,
+  "total_embeddings": 199,
+  "milvus_ids_sample": [
+    464020979037524120,
+    464020979037524121,
+    464020979037524122,
+    464020979037524123,
+    464020979037524124
+  ],
+  "chunk_types": {
+    "section_content": 83,
+    "table": 104,
+    "baseline_data": 6,
+    "impact_assessment": 6
+  },
+  "unique_sections": 162,
+  "page_range": "2 - 66",
+  "top_keywords": [
+    {
+      "keyword": "675 TPD",
+      "count": 97
+    },
+    {
+      "keyword": "PCBL",
+      "count": 82
+    },
+    {
+      "keyword": "Environmental",
+      "count": 62
+    },
+    {
+      "keyword": "TN",
+      "count": 59
+    },
+    {
+      "keyword": "environmental",
+      "count": 41
+    },
+    {
+      "keyword": "Carbon Black",
+      "count": 29
+    },
+    {
+      "keyword": "Limited",
+      "count": 28
+    },
+    {
+      "keyword": "Environmental Impact Assessment Report",
+      "count": 27
+    },
+    {
+      "keyword": "proposed",
+      "count": 26
+    },
+    {
+      "keyword": "project",
+      "count": 24
+    },
+    {
+      "keyword": "expansion",
+      "count": 22
+    },
+    {
+      "keyword": "Table",
+      "count": 21
+    },
+    {
+      "keyword": "IS",
+      "count": 20
+    },
+    {
+      "keyword": "Tiruvallur District",
+      "count": 19
+    },
+    {
+      "keyword": "environment",
+      "count": 18
+    }
+  ],
+  "source_document": "/home/prasa/projects/negd/parivesh-poc/app/data/document.md"
+}
