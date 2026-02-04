@@ -85,7 +85,7 @@ async def ingest_document(request: IngestionRequest):
         
         # Run ingestion
         ingester = AdvancedDocumentIngestion()
-        stats = ingester.ingest_document(
+        stats = await ingester.ingest_document(
             file_path=request.file_path,
             clear_existing=request.clear_existing
         )

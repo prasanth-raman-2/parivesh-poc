@@ -9,6 +9,7 @@ import json
 from litellm import completion, embedding
 from app.milvus import MilvusClient
 from app.core.settings import settings
+from app.models.model_catalogue import LLMModels, EmbeddingModels
 
 
 class DeficiencyDetectionService:
@@ -19,8 +20,8 @@ class DeficiencyDetectionService:
             collection_name=settings.MILVUS_COLLECTION_NAME,
             dim=settings.EMBEDDING_DIMENSION
         )
-        self.embedding_model = "text-embedding-3-large"
-        self.llm_model = "gpt-5.2"
+        self.embedding_model = EmbeddingModels.COHERE_EMBED_ENGLISH_V3.value
+        self.llm_model = LLMModels.CLAUDE_3_SONNET.value
         
     def connect(self):
         """Connect to Milvus and load collection."""

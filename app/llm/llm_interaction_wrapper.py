@@ -3,6 +3,7 @@ import litellm
 from app.core.settings import settings
 import os
 from app.models.ec_model import ECModel
+from app.models.model_catalogue import LLMModels
 
 os.environ["AWS_ACCESS_KEY_ID"] = settings.AWS_ACCESS_KEY_ID
 os.environ["AWS_SECRET_ACCESS_KEY"] = settings.AWS_SECRET_ACCESS_KEY
@@ -29,10 +30,14 @@ class LLMInterface():
     def __init__(self, session_directory, llm_api_key=None):
         self.session_directory = session_directory
         self.llm_api_key = llm_api_key
-        self.model_name = "bedrock/arn:aws:bedrock:ap-south-1::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
+        self.model_name = LLMModels.CLAUDE_3_SONNET.value
     
     def set_model(self, model_name: str):
         self.model_name = model_name
+        if model_name.startswith("bedrock/"):
+            os.environ["AWS_ACCESS_KEY_ID"] = settings.AWS_ACCESS_KEY_ID
+            os.environ["AWS_SECRET_ACCESS_KEY"] = settings.AWS_SECRET_ACCESS_KEY
+            os.environ["AWS_REGION_NAME"] = settings.AWS_REGION
     
     def get_response(self, messages, response_format,) -> ECModel:
         try:

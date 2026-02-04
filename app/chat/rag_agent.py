@@ -8,12 +8,13 @@ from app.core.settings import settings
 from litellm import completion, embedding
 from typing import List, Dict, Any
 import sys
+from app.models.model_catalogue import LLMModels, EmbeddingModels
 
 
 class RAGChatAgent:
     def __init__(
         self,
-        model: str = "gpt-5.2",
+        model: str = LLMModels.CLAUDE_3_SONNET.value,
         top_k: int = 3,
         temperature: float = 0.7
     ):
@@ -28,7 +29,7 @@ class RAGChatAgent:
         self.model = model
         self.top_k = top_k
         self.temperature = temperature
-        self.embedding_model = "text-embedding-3-large"
+        self.embedding_model = EmbeddingModels.COHERE_EMBED_ENGLISH_V3.value
         
         # Initialize Milvus client
         self.milvus_client = MilvusClient(
@@ -275,8 +276,8 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-5.2",
-        help="LLM model to use (default: gpt-4o-mini)"
+        default=LLMModels.CLAUDE_3_SONNET.value,
+        help="LLM model to use (default: Claude 3 Sonnet)"
     )
     parser.add_argument(
         "--top-k",

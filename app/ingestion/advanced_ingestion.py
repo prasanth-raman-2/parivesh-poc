@@ -8,11 +8,13 @@ from typing import List, Dict, Any, Tuple, Set
 from pathlib import Path
 from collections import Counter
 import json
+import asyncio
 
-from litellm import completion
+from litellm import completion, acompletion
 from app.ingestion.document_ingestion import DocumentIngestion
 from app.milvus import MilvusClient
 from app.core.settings import settings
+from app.models.model_catalogue import LLMModels
 
 
 class AdvancedDocumentIngestion:
@@ -25,9 +27,9 @@ class AdvancedDocumentIngestion:
             dim=settings.EMBEDDING_DIMENSION
         )
     
-    def extract_metadata(self, text: str, top_n: int = 15) -> Dict[str, Any]:
+    async def extract_metadata_async(self, text: str, top_n: int = 15) -> Dict[str, Any]:
         """
-        Extract all metadata using AI in a single call.
+        Extract all metadata using AI in a single call (async version).
         Uses LLM to intelligently identify page number, section info, keywords, entities, and chunk type.
         
         Returns:
@@ -73,8 +75,8 @@ Text:
 Respond with only the JSON object, no explanation:"""
         
         try:
-            response = completion(
-                model="gpt-5.2",
+            response = await acompletion(
+                model=LLMModels.CLAUDE_3_SONNET.value,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.3
@@ -172,18 +174,16 @@ Respond with only the JSON object, no explanation:"""
                 }
             }
     
-    def intelligent_chunk(self, text: str, chunk_size: int = 4000, overlap: int = 200) -> List[Dict[str, Any]]:
+    async def intelligent_chunk(self, text: str, chunk_size: int = 1500, overlap: int = 150, max_concurrent_ai: int = 3) -> List[Dict[str, Any]]:
         """
-        Intelligently chunk document.
+        Intelligently chunk document with parallel metadata extraction.
         Returns chunks with rich metadata extracted by AI.
         """
-        chunks = []
-        
-        # Simple chunking by size
+        # First, create basic chunks without metadata
+        chunk_texts = []
         lines = text.split('\n')
         current_chunk = []
         current_size = 0
-        chunk_index = 0
         
         for line in lines:
             current_chunk.append(line)
@@ -192,8 +192,7 @@ Respond with only the JSON object, no explanation:"""
             # If chunk is large enough, split it
             if current_size >= chunk_size:
                 chunk_text = '\n'.join(current_chunk)
-                chunks.append(self._create_chunk_metadata(chunk_text, chunk_index))
-                chunk_index += 1
+                chunk_texts.append(chunk_text)
                 
                 # Start new chunk with overlap
                 overlap_lines = current_chunk[-5:] if len(current_chunk) > 5 else []
@@ -203,15 +202,25 @@ Respond with only the JSON object, no explanation:"""
         # Add remaining chunk
         if current_chunk:
             chunk_text = '\n'.join(current_chunk)
-            chunks.append(self._create_chunk_metadata(chunk_text, chunk_index))
+            chunk_texts.append(chunk_text)
         
+        # Use semaphore to limit concurrent AI requests to avoid rate limits
+        semaphore = asyncio.Semaphore(max_concurrent_ai)
+        
+        async def bounded_metadata(text: str, index: int):
+            async with semaphore:
+                return await self._create_chunk_metadata_async(text, index)
+        
+        # Process all chunks with metadata in parallel with rate limiting
+        tasks = [bounded_metadata(text, i) for i, text in enumerate(chunk_texts)]
+        chunks = await asyncio.gather(*tasks)
         return chunks
     
-    def _create_chunk_metadata(self, text: str, chunk_index: int) -> Dict[str, Any]:
-        """Create rich metadata for a chunk using AI extraction."""
+    async def _create_chunk_metadata_async(self, text: str, chunk_index: int) -> Dict[str, Any]:
+        """Create rich metadata for a chunk using AI extraction (async)."""
         
         # Extract all metadata using AI
-        extraction_result = self.extract_metadata(text)
+        extraction_result = await self.extract_metadata_async(text)
         
         metadata = {
             'chunk_index': chunk_index,
@@ -233,7 +242,7 @@ Respond with only the JSON object, no explanation:"""
             'metadata': metadata
         }
     
-    def ingest_document(self, file_path: str, clear_existing: bool = True) -> Dict[str, Any]:
+    async def ingest_document(self, file_path: str, clear_existing: bool = True) -> Dict[str, Any]:
         """
         Main ingestion pipeline for EIA document.
         
@@ -273,13 +282,13 @@ Respond with only the JSON object, no explanation:"""
         
         # Intelligent chunking
         print("\n[4/6] Creating intelligent chunks with metadata...")
-        chunks_with_metadata = self.intelligent_chunk(document_text, chunk_size=4000, overlap=200)
+        chunks_with_metadata = await self.intelligent_chunk(document_text, chunk_size=1500, overlap=150)
         print(f"✓ Created {len(chunks_with_metadata)} chunks")
         
         # Generate embeddings
         print("\n[5/6] Generating embeddings...")
         texts = [chunk['text'] for chunk in chunks_with_metadata]
-        embeddings = self.doc_ingest.get_embeddings(texts)
+        embeddings = await self.doc_ingest.get_embeddings_async(texts)
         print(f"✓ Generated {len(embeddings)} embeddings")
         
         # Store to Milvus

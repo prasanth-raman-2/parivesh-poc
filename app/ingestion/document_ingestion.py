@@ -1,17 +1,19 @@
 
-from litellm import embedding
+from litellm import embedding, aembedding
 from app.milvus import MilvusClient
 from app.core.settings import settings
 from typing import List, Dict, Any, Optional
-
+from app.models.model_catalogue import EmbeddingModels
+import os
+import asyncio
 
 class DocumentIngestion:
     def __init__(self, use_milvus: bool = True):
         self.configuration={
-            "chunk_size": 6000,
-            "chunk_overlap": 400,
+            "chunk_size": 1500,
+            "chunk_overlap": 150,
         }
-        self.embedding_model = "text-embedding-3-large"
+        self.embedding_model = EmbeddingModels.COHERE_EMBED_MULTILINGUAL_V3.value
         self.output_path = "knowledge/knowledge_base.json"
         self.use_milvus = use_milvus
         
@@ -55,17 +57,40 @@ class DocumentIngestion:
         
         return chunks
     
-    def get_embeddings(self, chunks: List[str]) -> List[List[float]]:
-        print(f"Generating embeddings for {len(chunks)} chunks using model {self.embedding_model}")
-        embeddings = []
-        for chunk in chunks:
-            response = embedding(
-                model=self.embedding_model,
-                input=chunk
-            )
-            print(f"Embedding response: {response}")
-            embeddings.append(response['data'][0]['embedding'])
+    async def _get_single_embedding(self, chunk: str, index: int) -> tuple[int, List[float]]:
+        """Get embedding for a single chunk asynchronously."""
+        response = await aembedding(
+            model=self.embedding_model,
+            input=chunk
+        )
+        return index, response['data'][0]['embedding']
+    
+    async def get_embeddings_async(self, chunks: List[str], max_concurrent: int = 5) -> List[List[float]]:
+        print(f"Generating embeddings for {len(chunks)} chunks using model {self.embedding_model} (parallel processing, max {max_concurrent} concurrent)")
+        if self.embedding_model.startswith("bedrock/"):
+            os.environ["AWS_ACCESS_KEY_ID"] = settings.AWS_ACCESS_KEY_ID
+            os.environ["AWS_SECRET_ACCESS_KEY"] = settings.AWS_SECRET_ACCESS_KEY
+            os.environ["AWS_REGION_NAME"] = settings.AWS_REGION
+        
+        # Use semaphore to limit concurrent requests
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def bounded_embedding(chunk: str, index: int):
+            async with semaphore:
+                return await self._get_single_embedding(chunk, index)
+        
+        # Process embeddings in parallel with rate limiting
+        tasks = [bounded_embedding(chunk, i) for i, chunk in enumerate(chunks)]
+        results = await asyncio.gather(*tasks)
+        # Sort by index to maintain order
+        results.sort(key=lambda x: x[0])
+        embeddings = [emb for _, emb in results]
+        print(f"✓ Generated {len(embeddings)} embeddings")
         return embeddings
+    
+    def get_embeddings(self, chunks: List[str]) -> List[List[float]]:
+        """Synchronous wrapper for backward compatibility."""
+        return asyncio.run(self.get_embeddings_async(chunks))
     
     def store_embeddings_to_milvus(
         self,

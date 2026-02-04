@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     # Milvus Configuration
     MILVUS_HOST: str = Field(env="MILVUS_HOST", default="localhost", description="Milvus server host")
     MILVUS_PORT: str = Field(env="MILVUS_PORT", default="19530", description="Milvus server port")
-    MILVUS_COLLECTION_NAME: str = Field(env="MILVUS_COLLECTION_NAME", default="document_embeddings", description="Milvus collection name")
-    EMBEDDING_DIMENSION: int = Field(env="EMBEDDING_DIMENSION", default=3072, description="Embedding dimension for text-embedding-3-large")
+    MILVUS_COLLECTION_NAME: str = Field(env="MILVUS_COLLECTION_NAME", default="cohere_embeddings", description="Milvus collection name")
+    EMBEDDING_DIMENSION: int = Field(env="EMBEDDING_DIMENSION", default=1024, description="Embedding dimension for bedrock cohere")
 
 
 

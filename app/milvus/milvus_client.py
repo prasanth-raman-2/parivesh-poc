@@ -17,8 +17,8 @@ class MilvusClient:
         self,
         host: str = "localhost",
         port: str = "19530",
-        collection_name: str = "document_embeddings",
-        dim: int = 3072,  # dimension for text-embedding-3-large
+        collection_name: str = "cohere_embeddings",
+        dim: int = 1024,  # dimension for bedrock cohere embeddings
     ):
         """
         Initialize Milvus client.
@@ -27,7 +27,7 @@ class MilvusClient:
             host: Milvus server host
             port: Milvus server port
             collection_name: Name of the collection to store embeddings
-            dim: Dimension of embeddings (3072 for text-embedding-3-large)
+            dim: Dimension of embeddings (1024 for bedrock cohere)
         """
         self.host = host
         self.port = port
