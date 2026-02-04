@@ -2,113 +2,189 @@
   "project_details": {
     "project_name": "Proposed Expansion of PCBL (TN) Limited from 550 TPD to 675 TPD of Different Grades of Carbon Black",
     "project_proposal_for": "Expansion",
-    "expansion_under_7ii_a": "NO",
-    "project_id": "SW/74227/2024",
-    "project_description": "PCBL (TN) Limited is operating at SIPCOT Industrial Park, Thervoy Kandigai Village, Gummidipoondi Taluk, Thiruvallur District, Tamil Nadu – 601202. The unit has valid Environmental Clearance till 31.03.2028 for production capacity of 147000 MTPA. The company proposes to expand production from 550 MTPD to 675 MTPD. The expanded production will meet domestic market demand."
+    "category_as_per_eia": "B1",
+    "schedule_item": "5(e) – Petroleum products and petrochemical based processing",
+    "capacity_tpa": {
+      "existing": 192500,
+      "proposed_additional": 43750,
+      "total_after_expansion": 236250
+    },
+    "project_status": "To be Started",
+    "likely_construction_start_date": "01-06-2024",
+    "likely_construction_completion_date": "31-12-2025",
+    "project_description": "Expansion of carbon black manufacturing capacity to meet increasing domestic and export demand from tyre, ink, and rubber industries."
   },
+
   "organization_details": {
     "legal_status": "Company",
     "organization_name": "PCBL (TN) LIMITED",
-    "registered_address": {
-      "address": "Plot No A7, SIPCOT Industrial Complex, Thervoykandigai Village, Gummidipoondi Taluk, Thiruvallur District",
-      "village_city": "Thervoykandigai Village",
-      "state": "Tamil Nadu",
-      "district": "Thiruvallur",
-      "pin_code": "601202",
-      "landmark": "SIPCOT Industrial Park"
-    },
-    "contact_details": {
-      "email": "pcbltn@rpsg.in",
-      "mobile": "xxxxxx2341"
+    "industrial_area": {
+      "type": "Notified Industrial Area",
+      "name": "Thervoy Kandigai SIPCOT Industrial Park",
+      "year_of_notification": "Post September 2006"
     }
   },
+
   "applicant_details": {
     "name": "Rakesh Kumar Nayak",
     "designation": "Whole Time Director",
-    "correspondence_address": {
-      "address": "Plot No A7, SIPCOT Industrial Complex, Thervoykandigai Village, Gummidipoondi Taluk, Thiruvallur District",
-      "village_city": "Thervoykandigai Village",
-      "state": "Tamil Nadu",
-      "district": "Thiruvallur",
-      "pin_code": "601202"
+    "company": "PCBL (TN) LIMITED",
+    "undertaking_date": "07-03-2024"
+  },
+
+  "project_location": {
+    "state": "Tamil Nadu",
+    "district": "Thiruvallur",
+    "taluk": "Gummidipoondi",
+    "village": "Thervoy Kandigai",
+    "notified_industrial_area": "YES",
+    "interstate_boundary_distance_km": 2.67,
+    "nearest_railway_station": {
+      "name": "Gummidipoondi",
+      "distance_km": 16.34
     },
-    "contact_details": {
-      "email": "pcbltn@rpsg.in",
-      "mobile": "xxxxxx2341"
+    "nearest_airport": {
+      "name": "Chennai International Airport",
+      "distance_km": 46.5
+    },
+    "nearest_town": {
+      "name": "Uthukottai",
+      "distance_km": 9.5
     }
   },
-  "project_location": {
-    "kml_uploaded": "Project Site.kml",
-    "international_border_state": "YES",
-    "aerial_distance_from_border_km": 2.67,
-    "project_shape": "Non-Linear",
-    "location_details": {
-      "topsheet_no": "D44N15",
-      "state": "Tamil Nadu",
-      "district": "Thiruvallur",
-      "sub_district": "Gummidipoondi",
-      "village": "Teruvai"
-    },
-    "remarks": "N/A"
-  },
+
   "land_requirement": {
-    "non_forest_land_ha": {
+    "land_type": "Non-Forest",
+    "area_ha": {
       "existing": 24.2892,
       "additional": 0.9875,
       "total_after_expansion": 25.2767
     },
-    "forest_land_ha": {
-      "existing": 0,
-      "additional": 0,
-      "total_after_expansion": 0
-    },
-    "total_land_ha": 25.2767
-  },
-  "project_cost_lakhs": {
-    "existing_project_cost": 81600,
-    "proposed_expansion_cost": 36000,
-    "total_project_cost": 117600
-  },
-  "employment_generation": {
-    "construction_phase": {
-      "permanent_employment": {
-        "number": 10,
-        "period_days": 540,
-        "man_days": 5400
-      },
-      "temporary_employment_man_days": 270000,
-      "total_man_days": 275400
-    },
-    "operational_phase": {
-      "permanent_employment": {
-        "existing": 210,
-        "proposed": 20,
-        "total": 230
-      },
-      "period_days": {
-        "existing": 350,
-        "proposed": 0,
-        "total": 350
-      },
-      "man_days": {
-        "existing": 73500,
-        "proposed": 0,
-        "total": 80500
-      },
-      "temporary_employment_man_days": {
-        "existing": 31500,
-        "proposed": 14000,
-        "total": 45500
-      },
-      "total_man_days": 126000
+    "land_use_breakup": {
+      "built_up_area_ha": 6.931,
+      "driveway_area_ha": 4.2409,
+      "vacant_land_ha": 2.5595,
+      "packing_area_ha": 3.1864,
+      "greenbelt_area_ha": 8.3589
     }
   },
-  "other_information": {
-    "rehabilitation_and_resettlement": "NO",
-    "shifting_of_utilities_required": "NO",
-    "alternative_site_examined": "Not applicable as the project/activity is site specific",
-    "government_order_or_policy_applicable": "NO",
-    "litigation_pending": "NO",
-    "violation_of_laws_or_rules": "NO"
+
+  "water_requirement": {
+    "construction_stage": {
+      "source": "SIPCOT Water",
+      "quantity_kld": 100,
+      "mode_of_transport": "Pipeline"
+    },
+    "operation_stage": {
+      "source": "SIPCOT Industrial Park",
+      "quantity_kld": {
+        "existing": 3731,
+        "after_expansion": 3737
+      }
+    },
+    "wastewater_generation_kld": {
+      "existing": 517,
+      "after_expansion": 683
+    },
+    "wastewater_management": {
+      "treatment": "ETP & STP",
+      "recycle_quantity_kld": 623,
+      "discharge_outside_premises": 0,
+      "zld_practiced": "YES"
+    }
+  },
+
+  "power_and_energy": {
+    "total_power_requirement_mw": 11.8,
+    "main_source": "Waste Heat Recovery Based Cogeneration Plant / TANGEDCO",
+    "captive_power_capacity_mw": 36,
+    "dg_sets": {
+      "number": 2,
+      "capacity_kva": 1250,
+      "stack_height_m": 30
+    },
+    "renewable_energy_proposed_kw": 0
+  },
+
+  "raw_materials_and_fuels": {
+    "fuels": [
+      {
+        "name": "LDO / HSD",
+        "quantity_mt_per_year": 612,
+        "source": "IOCL / HPCL",
+        "transport": "Road"
+      }
+    ],
+    "raw_materials": [
+      { "name": "Carbon Black Feedstock / Dehydrated Coal Tar", "quantity": "34204 MT/month" },
+      { "name": "Molasses", "quantity": "72 KL/month" },
+      { "name": "Potassium Nitrate / Potassium Carbonate", "quantity": "15 MT/month" },
+      { "name": "Hydrochloric Acid", "quantity": "41 MT/month" },
+      { "name": "Caustic Soda", "quantity": "20 MT/month" }
+    ]
+  },
+
+  "waste_generation": {
+    "solid_waste": [
+      {
+        "type": "Municipal Solid Waste – Organic",
+        "quantity_tpa": 50.24,
+        "disposal": "Manure through local bins"
+      },
+      {
+        "type": "Municipal Solid Waste – Inorganic",
+        "quantity_tpa": 41.9,
+        "disposal": "Authorized vendors"
+      }
+    ],
+    "hazardous_waste": [
+      { "name": "Used Oil", "quantity_tpa": 8, "disposal": "TNPCB Authorized Recycler" },
+      { "name": "ETP Sludge & MEI Salt", "quantity_tpa": 5115, "disposal": "TSDF – Gummidipoondi" },
+      { "name": "Discarded Filter Media", "quantity_tpa": 15, "disposal": "TSDF" }
+    ],
+    "biomedical_waste": "NO",
+    "e_waste": "NO",
+    "plastic_waste": "NO"
+  },
+
+  "air_pollution_and_control": {
+    "pollutants": ["SPM", "SOx", "NOx"],
+    "sources": ["DG Sets", "Process Emissions"],
+    "control_measures": [
+      "Bag Filters",
+      "ESPs",
+      "Adequate Stack Height as per TNPCB norms"
+    ]
+  },
+
+  "greenbelt_development": {
+    "area_ha": {
+      "existing": 8.25,
+      "additional": 0.1089,
+      "total": 8.3589
+    },
+    "number_of_saplings": {
+      "existing": 1300,
+      "additional": 1500,
+      "total": 2800
+    },
+    "species": ["Teak", "Mahogany", "Iluppai", "Pungai", "Neem", "Naval"],
+    "funds_allocated_lakhs": 420000
+  },
+
+  "risk_and_safety": {
+    "hazardous_material_handling": "YES",
+    "risk_assessment": "To be included in EIA Report",
+    "natural_disaster_risk": "NO",
+    "occupational_health_measures": "SHE Policy Implemented"
+  },
+
+  "consultant_details": {
+    "qci_nabet_accredited": "YES",
+    "consultant_name": "ABC Techno Labs India Private Limited",
+    "accreditation_no": "ORG000715",
+    "category": "A",
+    "address": "SIDCO Industrial Estate, Ambattur, Chennai – 600098",
+    "email": "abc@abctechnolab.com"
   }
 }
