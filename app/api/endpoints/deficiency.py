@@ -37,7 +37,7 @@ async def detect_deficiencies(
         service.connect()
         
         # Detect deficiencies
-        report = service.detect_deficiencies(
+        report = await service.detect_deficiencies(
             proposal=project_proposal,
             top_k=top_k_rag_results,
             include_low=include_low_severity
@@ -81,7 +81,7 @@ async def detect_deficiencies_from_file(
         service.connect()
         
         # Detect deficiencies
-        report = service.detect_deficiencies(
+        report = await service.detect_deficiencies(
             proposal=proposal_data,
             top_k=top_k_rag_results,
             include_low=include_low_severity
