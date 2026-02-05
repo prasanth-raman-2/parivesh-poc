@@ -21,9 +21,16 @@ from app.schemas.ingestion import (
 from app.ingestion.advanced_ingestion import AdvancedDocumentIngestion
 from app.milvus import MilvusClient
 from app.core.settings import settings
+from app.models.model_catalogue import EmbeddingModels, ModelConfig
 from pymilvus import Collection, connections
 
 router = APIRouter(prefix="/ingestion", tags=["Document Ingestion"])
+
+# Determine which collection to use based on the embedding model
+# This should match the model used in AdvancedDocumentIngestion
+EMBEDDING_MODEL = EmbeddingModels.TEXT_EMBEDDING_3_LARGE
+COLLECTION_NAME = ModelConfig.get_collection_name(EMBEDDING_MODEL)
+EMBEDDING_DIMENSION = ModelConfig.get_embedding_dimension(EMBEDDING_MODEL)
 
 
 @router.delete("/clear", response_model=dict)
@@ -39,15 +46,15 @@ async def clear_database():
         
         # Drop collection if it exists
         from pymilvus import utility
-        if utility.has_collection(settings.MILVUS_COLLECTION_NAME):
-            utility.drop_collection(settings.MILVUS_COLLECTION_NAME)
+        if utility.has_collection(COLLECTION_NAME):
+            utility.drop_collection(COLLECTION_NAME)
             
             # Recreate empty collection
             milvus_client = MilvusClient(
                 host=settings.MILVUS_HOST,
                 port=settings.MILVUS_PORT,
-                collection_name=settings.MILVUS_COLLECTION_NAME,
-                dim=settings.EMBEDDING_DIMENSION
+                collection_name=COLLECTION_NAME,
+                dim=EMBEDDING_DIMENSION
             )
             milvus_client.create_collection(drop_existing=False)
             
@@ -55,13 +62,13 @@ async def clear_database():
             
             return {
                 "success": True,
-                "message": f"Successfully cleared collection '{settings.MILVUS_COLLECTION_NAME}'"
+                "message": f"Successfully cleared collection '{COLLECTION_NAME}'"
             }
         else:
             connections.disconnect("default")
             return {
                 "success": True,
-                "message": f"Collection '{settings.MILVUS_COLLECTION_NAME}' does not exist"
+                "message": f"Collection '{COLLECTION_NAME}' does not exist"
             }
         
     except Exception as e:
@@ -75,6 +82,7 @@ async def ingest_document(request: IngestionRequest):
     
     - **file_path**: Path to the document file (must exist)
     - **clear_existing**: Whether to clear existing data first
+    - **use_cache**: Whether to use cached metadata and embeddings if available
     - **chunk_size**: Size of text chunks (1000-10000 chars)
     - **overlap**: Overlap between chunks (0-1000 chars)
     """
@@ -87,7 +95,8 @@ async def ingest_document(request: IngestionRequest):
         ingester = AdvancedDocumentIngestion()
         stats = await ingester.ingest_document(
             file_path=request.file_path,
-            clear_existing=request.clear_existing
+            clear_existing=request.clear_existing,
+            use_cache=request.use_cache
         )
         
         # Convert top_keywords from tuples to dictionaries
@@ -132,7 +141,7 @@ async def list_documents():
         connections.connect("default", host=settings.MILVUS_HOST, port=settings.MILVUS_PORT)
         
         # Load collection
-        collection = Collection(settings.MILVUS_COLLECTION_NAME)
+        collection = Collection(COLLECTION_NAME)
         collection.load()
         
         # Query all metadata - use 'id >= 0' since id is an actual field
@@ -215,7 +224,7 @@ async def get_chunks(
         connections.connect("default", host=settings.MILVUS_HOST, port=settings.MILVUS_PORT)
         
         # Load collection
-        collection = Collection(settings.MILVUS_COLLECTION_NAME)
+        collection = Collection(COLLECTION_NAME)
         collection.load()
         
         # Build filter expression - start with a basic expression using actual fields
@@ -312,7 +321,7 @@ async def get_chunk_by_id(chunk_id: int):
         connections.connect("default", host=settings.MILVUS_HOST, port=settings.MILVUS_PORT)
         
         # Load collection
-        collection = Collection(settings.MILVUS_COLLECTION_NAME)
+        collection = Collection(COLLECTION_NAME)
         collection.load()
         
         # Query by ID

@@ -11,19 +11,25 @@ from attr import field
 from litellm import completion, embedding, acompletion, aembedding
 from app.milvus import MilvusClient
 from app.core.settings import settings
-from app.models.model_catalogue import LLMModels, EmbeddingModels
+from app.models.model_catalogue import LLMModels, EmbeddingModels, ModelConfig
 
 
 class DeficiencyDetectionService:
     def __init__(self):
+        self.embedding_model = EmbeddingModels.TEXT_EMBEDDING_3_LARGE.value
+        self.llm_model = LLMModels.GPT_5_2.value
+        
+        # Get dynamic configuration based on embedding model
+        embedding_enum = EmbeddingModels.TEXT_EMBEDDING_3_LARGE
+        collection_name = ModelConfig.get_collection_name(embedding_enum)
+        dimension = ModelConfig.get_embedding_dimension(embedding_enum)
+        
         self.milvus_client = MilvusClient(
             host=settings.MILVUS_HOST,
             port=settings.MILVUS_PORT,
-            collection_name=settings.MILVUS_COLLECTION_NAME,
-            dim=settings.EMBEDDING_DIMENSION
+            collection_name=collection_name,
+            dim=dimension
         )
-        self.embedding_model = EmbeddingModels.COHERE_EMBED_ENGLISH_V3.value
-        self.llm_model = LLMModels.CLAUDE_3_SONNET.value
         
     def connect(self):
         """Connect to Milvus and load collection."""

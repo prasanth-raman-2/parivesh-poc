@@ -3,7 +3,7 @@ from litellm import embedding, aembedding
 from app.milvus import MilvusClient
 from app.core.settings import settings
 from typing import List, Dict, Any, Optional
-from app.models.model_catalogue import EmbeddingModels
+from app.models.model_catalogue import EmbeddingModels, ModelConfig
 import os
 import asyncio
 
@@ -13,17 +13,23 @@ class DocumentIngestion:
             "chunk_size": 1500,
             "chunk_overlap": 150,
         }
-        self.embedding_model = EmbeddingModels.COHERE_EMBED_MULTILINGUAL_V3.value
+        # Use TEXT_EMBEDDING_3_LARGE by default
+        self.embedding_model = EmbeddingModels.TEXT_EMBEDDING_3_LARGE.value
         self.output_path = "knowledge/knowledge_base.json"
         self.use_milvus = use_milvus
         
         # Initialize Milvus client if enabled
         if self.use_milvus:
+            # Get dynamic configuration based on embedding model
+            embedding_enum = EmbeddingModels.TEXT_EMBEDDING_3_LARGE
+            collection_name = ModelConfig.get_collection_name(embedding_enum)
+            dimension = ModelConfig.get_embedding_dimension(embedding_enum)
+            
             self.milvus_client = MilvusClient(
                 host=settings.MILVUS_HOST,
                 port=settings.MILVUS_PORT,
-                collection_name=settings.MILVUS_COLLECTION_NAME,
-                dim=settings.EMBEDDING_DIMENSION
+                collection_name=collection_name,
+                dim=dimension
             )
     
     def connect_milvus(self):

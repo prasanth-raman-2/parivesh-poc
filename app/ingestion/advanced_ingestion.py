@@ -9,23 +9,87 @@ from pathlib import Path
 from collections import Counter
 import json
 import asyncio
+import hashlib
+import os
 
 from litellm import completion, acompletion
 from app.ingestion.document_ingestion import DocumentIngestion
 from app.milvus import MilvusClient
 from app.core.settings import settings
-from app.models.model_catalogue import LLMModels
+from app.models.model_catalogue import LLMModels, EmbeddingModels, ModelConfig
 
 
 class AdvancedDocumentIngestion:
     def __init__(self):
         self.doc_ingest = DocumentIngestion(use_milvus=True)
+        self.embedding_model = EmbeddingModels.TEXT_EMBEDDING_3_LARGE.value
+        self.llm_model = LLMModels.GPT_5_2.value
+        
+        # Get dynamic configuration based on embedding model
+        embedding_enum = EmbeddingModels.TEXT_EMBEDDING_3_LARGE
+        collection_name = ModelConfig.get_collection_name(embedding_enum)
+        dimension = ModelConfig.get_embedding_dimension(embedding_enum)
+        
         self.milvus_client = MilvusClient(
             host=settings.MILVUS_HOST,
             port=settings.MILVUS_PORT,
-            collection_name=settings.MILVUS_COLLECTION_NAME,
-            dim=settings.EMBEDDING_DIMENSION
+            collection_name=collection_name,
+            dim=dimension
         )
+        
+        # Cache directory
+        self.cache_dir = Path("cache/ingestion")
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+    
+    def _get_cache_key(self, file_path: str, chunk_size: int, overlap: int) -> str:
+        """Generate cache key based on file path and chunking parameters."""
+        # Read file to compute hash
+        with open(file_path, 'rb') as f:
+            file_hash = hashlib.md5(f.read()).hexdigest()
+        
+        cache_key = f"{file_hash}_{chunk_size}_{overlap}"
+        return cache_key
+    
+    def _get_cache_paths(self, cache_key: str) -> Dict[str, Path]:
+        """Get cache file paths for metadata and embeddings."""
+        return {
+            'metadata': self.cache_dir / f"{cache_key}_metadata.json",
+            'embeddings': self.cache_dir / f"{cache_key}_embeddings.json"
+        }
+    
+    def _load_from_cache(self, cache_key: str) -> tuple[List[Dict[str, Any]], List[List[float]]]:
+        """Load cached metadata and embeddings if available."""
+        cache_paths = self._get_cache_paths(cache_key)
+        
+        if cache_paths['metadata'].exists() and cache_paths['embeddings'].exists():
+            print(f"✓ Loading from cache: {cache_key}")
+            
+            with open(cache_paths['metadata'], 'r') as f:
+                chunks_with_metadata = json.load(f)
+            
+            with open(cache_paths['embeddings'], 'r') as f:
+                embeddings = json.load(f)
+            
+            print(f"✓ Loaded {len(chunks_with_metadata)} chunks and {len(embeddings)} embeddings from cache")
+            return chunks_with_metadata, embeddings
+        
+        return None, None
+    
+    def _save_to_cache(self, cache_key: str, chunks_with_metadata: List[Dict[str, Any]], embeddings: List[List[float]]):
+        """Save metadata and embeddings to cache."""
+        cache_paths = self._get_cache_paths(cache_key)
+        
+        print(f"\n💾 Saving to cache: {cache_key}")
+        
+        with open(cache_paths['metadata'], 'w') as f:
+            json.dump(chunks_with_metadata, f)
+        
+        with open(cache_paths['embeddings'], 'w') as f:
+            json.dump(embeddings, f)
+        
+        print(f"✓ Cached {len(chunks_with_metadata)} chunks and {len(embeddings)} embeddings")
+        print(f"  Metadata: {cache_paths['metadata']}")
+        print(f"  Embeddings: {cache_paths['embeddings']}")
     
     async def extract_metadata_async(self, text: str, top_n: int = 15) -> Dict[str, Any]:
         """
@@ -76,12 +140,11 @@ Respond with only the JSON object, no explanation:"""
         
         try:
             response = await acompletion(
-                model=LLMModels.CLAUDE_3_SONNET.value,
+                model=self.llm_model,
                 messages=[{"role": "user", "content": prompt}],
                 response_format={"type": "json_object"},
                 temperature=0.3
             )
-            
             result = json.loads(response.choices[0].message.content)
             
             # Extract page number
@@ -242,13 +305,14 @@ Respond with only the JSON object, no explanation:"""
             'metadata': metadata
         }
     
-    async def ingest_document(self, file_path: str, clear_existing: bool = True) -> Dict[str, Any]:
+    async def ingest_document(self, file_path: str, clear_existing: bool = True, use_cache: bool = True) -> Dict[str, Any]:
         """
         Main ingestion pipeline for EIA document.
         
         Args:
             file_path: Path to the markdown document
             clear_existing: If True, clear existing Milvus data first
+            use_cache: If True, use cached metadata and embeddings if available
             
         Returns:
             Ingestion statistics
@@ -256,6 +320,20 @@ Respond with only the JSON object, no explanation:"""
         print("\n" + "="*80)
         print("ADVANCED DOCUMENT INGESTION FOR AGENTIC RAG")
         print("="*80)
+        
+        # Get chunk configuration
+        chunk_size, overlap = ModelConfig.get_chunk_config(EmbeddingModels.TEXT_EMBEDDING_3_LARGE)
+        
+        # Generate cache key
+        cache_key = self._get_cache_key(file_path, chunk_size, overlap)
+        
+        # Try to load from cache if enabled
+        chunks_with_metadata = None
+        embeddings = None
+        
+        if use_cache:
+            print(f"\n[Cache] Checking for cached data...")
+            chunks_with_metadata, embeddings = self._load_from_cache(cache_key)
         
         # Connect to Milvus
         print("\n[1/6] Connecting to Milvus...")
@@ -265,31 +343,41 @@ Respond with only the JSON object, no explanation:"""
         if clear_existing:
             print("\n[2/6] Clearing existing Milvus data...")
             from pymilvus import utility
-            if utility.has_collection(settings.MILVUS_COLLECTION_NAME):
-                utility.drop_collection(settings.MILVUS_COLLECTION_NAME)
+            collection_name = ModelConfig.get_collection_name(EmbeddingModels.TEXT_EMBEDDING_3_LARGE)
+            if utility.has_collection(collection_name):
+                utility.drop_collection(collection_name)
                 print("✓ Cleared existing collection")
                 # Recreate collection
                 self.milvus_client.create_collection(drop_existing=False)
         else:
             print("\n[2/6] Keeping existing data...")
         
-        # Read document
-        print("\n[3/6] Reading document...")
-        with open(file_path, 'r', encoding='utf-8') as f:
-            document_text = f.read()
-        
-        print(f"✓ Loaded document: {len(document_text)} characters, {len(document_text.split())} words")
-        
-        # Intelligent chunking
-        print("\n[4/6] Creating intelligent chunks with metadata...")
-        chunks_with_metadata = await self.intelligent_chunk(document_text, chunk_size=1500, overlap=150)
-        print(f"✓ Created {len(chunks_with_metadata)} chunks")
-        
-        # Generate embeddings
-        print("\n[5/6] Generating embeddings...")
-        texts = [chunk['text'] for chunk in chunks_with_metadata]
-        embeddings = await self.doc_ingest.get_embeddings_async(texts)
-        print(f"✓ Generated {len(embeddings)} embeddings")
+        # If not cached, process the document
+        if chunks_with_metadata is None or embeddings is None:
+            # Read document
+            print("\n[3/6] Reading document...")
+            with open(file_path, 'r', encoding='utf-8') as f:
+                document_text = f.read()
+            
+            print(f"✓ Loaded document: {len(document_text)} characters, {len(document_text.split())} words")
+            
+            # Intelligent chunking
+            print("\n[4/6] Creating intelligent chunks with metadata...")
+            print(f"Using chunk_size={chunk_size}, overlap={overlap} for {EmbeddingModels.TEXT_EMBEDDING_3_LARGE.value}")
+            chunks_with_metadata = await self.intelligent_chunk(document_text, chunk_size=chunk_size, overlap=overlap)
+            print(f"✓ Created {len(chunks_with_metadata)} chunks")
+            
+            # Generate embeddings
+            print("\n[5/6] Generating embeddings...")
+            texts = [chunk['text'] for chunk in chunks_with_metadata]
+            embeddings = await self.doc_ingest.get_embeddings_async(texts)
+            print(f"✓ Generated {len(embeddings)} embeddings")
+            
+            # Save to cache
+            if use_cache:
+                self._save_to_cache(cache_key, chunks_with_metadata, embeddings)
+        else:
+            print("\n[3-5/6] Skipped (using cache)")
         
         # Store to Milvus
         print("\n[6/6] Storing to Milvus...")

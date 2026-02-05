@@ -13,6 +13,10 @@ class IngestionRequest(BaseModel):
         default=False, 
         description="Whether to clear existing data before ingestion"
     )
+    use_cache: bool = Field(
+        default=True,
+        description="Whether to use cached metadata and embeddings if available"
+    )
     chunk_size: int = Field(default=4000, ge=1000, le=10000, description="Size of text chunks")
     overlap: int = Field(default=200, ge=0, le=1000, description="Overlap between chunks")
 
