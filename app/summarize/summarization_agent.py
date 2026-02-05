@@ -1150,8 +1150,8 @@ class DocumentSummarizationAgent:
 
 if __name__ == "__main__":
     config = SummarizationConfig(
-        input_path="/home/prasa/projects/negd/parivesh-poc/docs/eia_report_3.pdf",
-        output_path="/home/prasa/projects/negd/parivesh-poc/docs/summary_3.md",
+        input_path="/home/prasa/projects/negd/parivesh-poc/docs/eia_report.pdf",
+        output_path="/home/prasa/projects/negd/parivesh-poc/docs/summary_1.md",
         model="gpt-5.2",
         max_iterations=250,
         chunk_size_pages=10,
